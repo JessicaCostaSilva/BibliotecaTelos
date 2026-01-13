@@ -1,0 +1,157 @@
+/* ---------------------------
+   Books (CRUD)
+--------------------------- */
+CREATE OR ALTER PROCEDURE dbo.AddBook
+    @title NVARCHAR(200),
+    @author NVARCHAR(150),
+    @genre NVARCHAR(80) = NULL,
+    @published_year INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.Books (title, author, genre, published_year)
+    VALUES (@title, @author, @genre, @published_year);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.UpdateBook
+    @book_id INT,
+    @title NVARCHAR(200),
+    @author NVARCHAR(150),
+    @genre NVARCHAR(80) = NULL,
+    @published_year INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Books
+    SET title = @title,
+        author = @author,
+        genre = @genre,
+        published_year = @published_year
+    WHERE book_id = @book_id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.DeleteBook
+    @book_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM dbo.Loans WHERE book_id = @book_id AND return_date IS NULL)
+    BEGIN
+        RAISERROR('Não é possível excluir: há empréstimo em aberto para este livro.', 16, 1);
+        RETURN;
+    END
+    DELETE FROM dbo.Books WHERE book_id = @book_id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SearchBooks
+    @title NVARCHAR(200) = NULL,
+    @author NVARCHAR(150) = NULL,
+    @genre NVARCHAR(80) = NULL,
+    @published_year INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT b.*, v.is_available
+    FROM dbo.Books b
+    JOIN dbo.vBookAvailability v ON v.book_id = b.book_id
+    WHERE (@title IS NULL OR b.title LIKE '%' + @title + '%')
+      AND (@author IS NULL OR b.author LIKE '%' + @author + '%')
+      AND (@genre IS NULL OR b.genre = @genre)
+      AND (@published_year IS NULL OR b.published_year = @published_year);
+END;
+GO
+
+/* ---------------------------
+   Users (CRUD)
+--------------------------- */
+CREATE OR ALTER PROCEDURE dbo.AddUser
+    @name NVARCHAR(150),
+    @email NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.Users (name, email) VALUES (@name, @email);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.UpdateUser
+    @user_id INT,
+    @name NVARCHAR(150),
+    @email NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Users SET name = @name, email = @email WHERE user_id = @user_id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.DeleteUser
+    @user_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM dbo.Loans WHERE user_id = @user_id AND return_date IS NULL)
+    BEGIN
+        RAISERROR('Não é possível excluir: usuário possui empréstimo em aberto.', 16, 1);
+        RETURN;
+    END
+    DELETE FROM dbo.Users WHERE user_id = @user_id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SearchUsers
+    @name NVARCHAR(150) = NULL,
+    @email NVARCHAR(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT u.*, dbo.TotalLoans(u.user_id) AS total_loans
+    FROM dbo.Users u
+    WHERE (@name IS NULL OR u.name LIKE '%' + @name + '%')
+      AND (@email IS NULL OR u.email LIKE '%' + @email + '%');
+END;
+GO
+
+/* ---------------------------
+   Loans (Empréstimo/Devolução)
+--------------------------- */
+CREATE OR ALTER PROCEDURE dbo.RegisterLoan
+    @book_id INT,
+    @user_id INT,
+    @loan_date DATE = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Books WHERE book_id = @book_id)
+        RAISERROR('Livro não encontrado.', 16, 1);
+    ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE user_id = @user_id)
+        RAISERROR('Usuário não encontrado.', 16, 1);
+    ELSE IF EXISTS (SELECT 1 FROM dbo.Loans WHERE book_id = @book_id AND return_date IS NULL)
+        RAISERROR('Livro indisponível: já está emprestado.', 16, 1);
+    ELSE
+        INSERT INTO dbo.Loans (book_id, user_id, loan_date)
+        VALUES (@book_id, @user_id, ISNULL(@loan_date, CAST(GETDATE() AS DATE)));
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RegisterReturn
+    @loan_id INT,
+    @return_date DATE = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Loans WHERE loan_id = @loan_id)
+        RAISERROR('Empréstimo não encontrado.', 16, 1);
+    ELSE IF EXISTS (SELECT 1 FROM dbo.Loans WHERE loan_id = @loan_id AND return_date IS NOT NULL)
+        RAISERROR('Este empréstimo já foi devolvido.', 16, 1);
+    ELSE
+        UPDATE dbo.Loans
+        SET return_date = ISNULL(@return_date, CAST(GETDATE() AS DATE))
+        WHERE loan_id = @loan_id;
+END;
+GO
