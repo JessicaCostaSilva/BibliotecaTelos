@@ -1,0 +1,59 @@
+-- Buscar livros por gênero
+SELECT * 
+FROM dbo.Books 
+WHERE genre = N'Fiction';
+
+-- Listar livros emprestados (em aberto)
+SELECT b.title, u.name, l.loan_date
+FROM dbo.Loans l
+JOIN dbo.Books b ON l.book_id = b.book_id
+JOIN dbo.Users u ON l.user_id = u.user_id
+WHERE l.return_date IS NULL;
+
+-- Usuários com mais de 3 empréstimos (subquery)
+SELECT u.name
+FROM dbo.Users u
+WHERE (SELECT COUNT(*) FROM dbo.Loans l WHERE l.user_id = u.user_id) > 3;
+
+-- Usar a função TotalLoans
+SELECT u.user_id, u.name, dbo.TotalLoans(u.user_id) AS total_loans
+FROM dbo.Users u;
+
+-- Livros devolvidos no mês atual
+SELECT b.title, u.name, l.loan_date, l.return_date
+FROM dbo.Loans l
+JOIN dbo.Books b ON b.book_id = l.book_id
+JOIN dbo.Users u ON u.user_id = l.user_id
+WHERE l.return_date IS NOT NULL
+  AND MONTH(l.return_date) = MONTH(GETDATE())
+  AND YEAR(l.return_date) = YEAR(GETDATE());
+
+-- Disponibilidade de livros
+SELECT b.title, v.is_available
+FROM dbo.Books b
+JOIN dbo.vBookAvailability v ON v.book_id = b.book_id
+ORDER BY b.title;
+
+-- Top 5 usuários por empréstimos
+SELECT TOP (5) user_id, name, total_loans
+FROM dbo.vTopUsers
+ORDER BY total_loans DESC;
+
+-- Livros nunca emprestados
+SELECT b.book_id, b.title
+FROM dbo.Books b
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.Loans l WHERE l.book_id = b.book_id
+);
+
+-- Tempo médio de empréstimo (dias) para devolvidos
+SELECT 
+    AVG(DATEDIFF(DAY, l.loan_date, l.return_date)) AS avg_days
+FROM dbo.Loans l
+WHERE l.return_date IS NOT NULL;
+
+-- Usuários com empréstimos em aberto
+SELECT DISTINCT u.user_id, u.name, u.email
+FROM dbo.Users u
+JOIN dbo.Loans l ON l.user_id = u.user_id
+WHERE l.return_date IS NULL;
