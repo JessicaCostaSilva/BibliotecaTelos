@@ -1,0 +1,7 @@
+-- 1. Criar o banco de dados
+CREATE DATABASE BibliotecaTelos;
+GO
+
+-- 2. Usar o banco
+USE BibliotecaTelos;
+GO
