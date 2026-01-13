@@ -1,0 +1,35 @@
+-- Tabela: Books
+CREATE TABLE dbo.Books (
+    book_id INT IDENTITY(1,1) PRIMARY KEY,
+    title NVARCHAR(200) NOT NULL,
+    author NVARCHAR(150) NOT NULL,
+    genre NVARCHAR(80) NULL,
+    published_year INT NULL,
+    CONSTRAINT CK_Books_published_year CHECK (published_year IS NULL OR (published_year BETWEEN 1400 AND YEAR(GETDATE())))
+);
+
+-- Tabela: Users
+CREATE TABLE dbo.Users (
+    user_id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(150) NOT NULL,
+    email NVARCHAR(200) NOT NULL UNIQUE
+);
+
+-- Tabela: Loans
+CREATE TABLE dbo.Loans (
+    loan_id INT IDENTITY(1,1) PRIMARY KEY,
+    book_id INT NOT NULL,
+    user_id INT NOT NULL,
+    loan_date DATE NOT NULL DEFAULT (CAST(GETDATE() AS DATE)),
+    return_date DATE NULL,
+    CONSTRAINT FK_Loans_Books FOREIGN KEY (book_id) REFERENCES dbo.Books(book_id),
+    CONSTRAINT FK_Loans_Users FOREIGN KEY (user_id) REFERENCES dbo.Users(user_id),
+    CONSTRAINT CK_Loans_dates CHECK (return_date IS NULL OR return_date >= loan_date)
+);
+
+-- Índices para performance
+CREATE INDEX IX_Books_genre ON dbo.Books(genre);
+CREATE INDEX IX_Books_author ON dbo.Books(author);
+CREATE INDEX IX_Users_email ON dbo.Users(email);
+CREATE INDEX IX_Loans_book_user ON dbo.Loans(book_id, user_id);
+CREATE INDEX IX_Loans_open ON dbo.Loans(return_date) INCLUDE (book_id, user_id, loan_date);
