@@ -1,0 +1,19 @@
+Adicionar livro: EXEC dbo.AddBook @title='...', @author='...', @genre='...', @published_year=2020;
+
+Atualizar livro: EXEC dbo.UpdateBook @book_id=1, @title='Novo Título', @author='Autor', @genre='Fiction', @published_year=2021;
+
+Excluir livro: EXEC dbo.DeleteBook @book_id=1;
+
+Buscar livros: EXEC dbo.SearchBooks @title='Code', @author=NULL, @genre=NULL, @published_year=NULL;
+
+Adicionar usuário: EXEC dbo.AddUser @name='João', @email='joao@example.com';
+
+Atualizar usuário: EXEC dbo.UpdateUser @user_id=1, @name='João Silva', @email='joao.silva@example.com';
+
+Excluir usuário: EXEC dbo.DeleteUser @user_id=1;
+
+Buscar usuários: EXEC dbo.SearchUsers @name='Ana', @email=NULL;
+
+Registrar empréstimo: EXEC dbo.RegisterLoan @book_id=2, @user_id=3;
+
+Registrar devolução: EXEC dbo.RegisterReturn @loan_id=5;
