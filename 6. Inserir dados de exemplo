@@ -1,0 +1,20 @@
+-- Livros
+INSERT INTO dbo.Books (title, author, genre, published_year) VALUES
+(N'1984', N'George Orwell', N'Fiction', 1949),
+(N'Dom Casmurro', N'Machado de Assis', N'Fiction', 1899),
+(N'Clean Code', N'Robert C. Martin', N'Technology', 2008),
+(N'Sapiens', N'Yuval Noah Harari', N'Non-Fiction', 2011);
+
+-- Usuários
+INSERT INTO dbo.Users (name, email) VALUES
+(N'Ana Silva', N'ana.silva@example.com'),
+(N'Bruno Souza', N'bruno.souza@example.com'),
+(N'Carla Lima', N'carla.lima@example.com');
+
+-- Empréstimos de exemplo
+EXEC dbo.RegisterLoan @book_id = 1, @user_id = 1; -- 1984 para Ana
+EXEC dbo.RegisterLoan @book_id = 3, @user_id = 2; -- Clean Code para Bruno
+
+-- Devolução de exemplo
+DECLARE @loan1984 INT = (SELECT TOP 1 loan_id FROM dbo.Loans WHERE book_id = 1 AND user_id = 1 ORDER BY loan_id DESC);
+EXEC dbo.RegisterReturn @loan_id = @loan1984;
