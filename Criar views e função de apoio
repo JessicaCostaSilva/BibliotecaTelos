@@ -1,0 +1,28 @@
+-- View: disponibilidade do livro
+CREATE VIEW dbo.vBookAvailability AS
+SELECT 
+    b.book_id,
+    b.title,
+    CASE 
+        WHEN EXISTS (
+            SELECT 1 
+            FROM dbo.Loans l 
+            WHERE l.book_id = b.book_id AND l.return_date IS NULL
+        ) THEN CAST(0 AS BIT)
+        ELSE CAST(1 AS BIT)
+    END AS is_available
+FROM dbo.Books b;
+GO
+
+-- Função: total de empréstimos por usuário
+CREATE OR ALTER FUNCTION dbo.TotalLoans (@user_id INT)
+RETURNS INT
+AS
+BEGIN
+    RETURN (
+        SELECT COUNT(*) 
+        FROM dbo.Loans 
+        WHERE user_id = @user_id
+    );
+END;
+GO
